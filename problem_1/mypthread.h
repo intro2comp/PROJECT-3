@@ -6,12 +6,11 @@
 #include <stdlib.h>
 #include <errno.h>
 
-struct threadNode {
-	struct threadNode *prev;
-	mypthread_t *n;
-	struct threadNode *next;
-}*head, *tail, *temp, *seachNode;
-
+enum mypthread_state {
+	PS_ACTIVE,
+	PS_BLOCKED,
+	PS_DEAD
+};
 
 typedef struct {
 	int tid;
@@ -32,11 +31,11 @@ int mypthread_yield(void);
 
 int mypthread_join(mypthread_t thread, void **retval);
 
-enum mypthread_state {
-	PS_ACTIVE,
-	PS_BLOCKED,
-	PS_DEAD
-};
+struct threadNode {
+	struct threadNode *prev;
+	mypthread_t *n;
+	struct threadNode *next;
+}*head, *tail, *temp, *seachNode;
 
 
 /* Don't touch anything after this line.
