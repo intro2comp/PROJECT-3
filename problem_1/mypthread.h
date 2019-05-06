@@ -6,13 +6,11 @@
 #include <stdlib.h>
 #include <errno.h>
 
-
-struct threadNode {
-	struct threadNode *prev;
-	mypthread_t *n;
-	struct threadNode *next;
-}*head, *tail, *temp, *seachNode;
-
+enum mypthread_state {
+	PS_ACTIVE,
+	PS_BLOCKED,
+	PS_DEAD
+};
 
 typedef struct {
 	int tid;
@@ -24,12 +22,6 @@ typedef struct {
 typedef struct {
 } mypthread_attr_t;
 
-enum mypthread_state {
-	PS_ACTIVE,
-	PS_BLOCKED,
-	PS_DEAD
-};
-
 int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 			void *(*start_routine) (void *), void *arg);
 
@@ -38,6 +30,13 @@ void mypthread_exit(void *retval);
 int mypthread_yield(void);
 
 int mypthread_join(mypthread_t thread, void **retval);
+
+struct threadNode {
+	struct threadNode *prev;
+	mypthread_t *n;
+	struct threadNode *next;
+}*head, *tail, *temp, *seachNode;
+
 
 /* Don't touch anything after this line.
  *

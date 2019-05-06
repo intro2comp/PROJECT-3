@@ -1,37 +1,37 @@
 #include "mypthread.h"
 
 
-int nodeNum = 0;
+int threadNodeNum = 0;
 
 int getcount() {
-	return nodeNum;
+	return threadNodeNum;
 }
 
 
-mypthread_t* headout() {
+mypthread_t* returnHead() {
 	return (head->n);
 }
-mypthread_t* tailout() {
+mypthread_t* returnTail() {
 	return (tail->n);
 }
 
 
-void create_node() {
+void create_threadNode() {
 	mypthread_t data;
 	temp = (struct threadNode *) malloc(1 * sizeof(struct threadNode));
 	temp->prev = NULL;
 	temp->next = NULL;
-	nodeNum++;
+	threadNodeNum++;
 }
 
 
 void enqueue(mypthread_t* data) {
 	if (head == NULL) {
-		create_node();
+		create_threadNode();
 		head = temp;
 		tail = temp;
 	} else {
-		create_node();
+		create_threadNode();
 		tail->next = temp;
 		temp->prev = tail;
 		tail = temp;
