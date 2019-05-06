@@ -1,27 +1,31 @@
-//mypthread.c
 #ifndef H_MYPTHREAD
 #define H_MYPTHREAD
 
 #include <ucontext.h>
-#include <stdio.h>      
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 
-struct threadNode; //defined in .c class
 
-typedef struct{
-    //Thread ID
-    short tid;
-    //Pointer to thread node 
-    struct threadNode * mynode;
+enum mypthread_state {
+	PS_ACTIVE,
+	PS_BLOCKED,
+	PS_DEAD
+};
+
+typedef struct {
+
+	int th_id;
+	ucontext_t* ctx;
+	enum mypthread_state state;
+	int joinfrom_th;
 } mypthread_t;
 
 typedef struct {
-    //Not specified to implement in project instructions but decided to do it anyway.
 } mypthread_attr_t;
 
-// Functions
-int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
+			void *(*start_routine) (void *), void *arg);
 
 void mypthread_exit(void *retval);
 
@@ -29,6 +33,11 @@ int mypthread_yield(void);
 
 int mypthread_join(mypthread_t thread, void **retval);
 
+struct node {
+	struct node *prev;
+	mypthread_t *n;
+	struct node *next;
+}*head, *tail, *temp, *seachNode;
 
 /* Don't touch anything after this line.
  *
