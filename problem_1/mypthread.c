@@ -1,32 +1,27 @@
 #include "mypthread.h"
-#include "ucontext.h"
-#include "stdio.h"
-#include "time.h"
-#include "stdlib.h"
 
-int numOfNodes = 0;
+
+int nodeNum = 0;
 
 int getcount() {
-	return numOfNodes;
+	return nodeNum;
 }
 
 
-mypthread_t* returnHead() {
+mypthread_t* headout() {
 	return (head->n);
 }
-
-
-mypthread_t* returnTail() {
+mypthread_t* tailout() {
 	return (tail->n);
 }
 
 
 void create_node() {
 	mypthread_t data;
-	temp = (struct node *) malloc(1 * sizeof(struct node));
+	temp = (struct threadNode *) malloc(1 * sizeof(struct threadNode));
 	temp->prev = NULL;
 	temp->next = NULL;
-	numOfNodes++;
+	nodeNum++;
 }
 
 
@@ -46,26 +41,26 @@ void enqueue(mypthread_t* data) {
 	temp->n = data;
 }
 
-mypthread_t* searchThread(int threadId) {
+mypthread_t* threadsearch(int threadNum) {
 	temp = head;
 	while (temp != NULL) {
-		if (temp->n->th_id == threadId)
+		if (temp->n->tid == threadNum)
 			return (temp->n);
 		else {
 			temp = temp->next;
 		}
 	}
-	printf("Error! %d Not found!", threadId);
+	printf("Error, %d is missing!", threadNum);
 	exit(0);
 }
 
-mypthread_t* searchNextActiveThread(int threadId) {
+mypthread_t* searchNextThread(int threadNum) {
 
 	temp = head;
 
 	while (temp != NULL) {
-		if (temp->n->th_id == threadId) {
-			//seachNode=temp;
+		if (temp->n->tid == threadNum) {
+
 			break;
 		} else {
 			temp = temp->next;
@@ -85,11 +80,11 @@ mypthread_t* searchNextActiveThread(int threadId) {
 		exit(0);
 	}
 
-	printf("No active thread found after ThreadId%d\n", threadId);
+	printf("No thread found after threadNum%d\n", threadNum);
 	exit(0);
 }
 
-int curr_thread_id = 1;
+int currentTID = 1;
 
 int numOfThreads = 1;
 
@@ -99,73 +94,76 @@ int mypthread_create(mypthread_t *thread, const mypthread_attr_t *attr,
 	if (getcount() == 0) {
 
 		mypthread_t* main_thread = (mypthread_t *) malloc(sizeof(mypthread_t));
-		main_thread->th_id = numOfThreads++;
+		main_thread->tid = numOfThreads++;
 		ucontext_t* context = (ucontext_t*) malloc(sizeof(ucontext_t));
-		main_thread->ctx = context;
-		main_thread->ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * 4096);
-		main_thread->ctx->uc_stack.ss_size = 4096;
+		main_thread->ctext = context;
+		main_thread->ctext->uc_stack.ss_sp = (char*) malloc(sizeof(char) * 4096);
+		main_thread->ctext->uc_stack.ss_size = 4096;
 		main_thread->state = PS_ACTIVE;
 		enqueue(main_thread);
 	}
 
 	ucontext_t* context = (ucontext_t*) malloc(sizeof(ucontext_t));
-	thread->ctx = context;
-	getcontext(thread->ctx);
-	(*thread).ctx->uc_stack.ss_sp = (char*) malloc(sizeof(char) * 4096);
-	(*thread).ctx->uc_stack.ss_size = 4096;
+	thread->ctext = context;
+	getcontext(thread->ctext);
+	(*thread).ctext->uc_stack.ss_sp = (char*) malloc(sizeof(char) * 4096);
+	(*thread).ctext->uc_stack.ss_size = 4096;
 	(*thread).state = PS_ACTIVE;
-	thread->th_id = numOfThreads++;
-	makecontext(thread->ctx, (void (*)()) start_routine, 1, arg);
+	thread->tid = numOfThreads++;
+	makecontext(thread->ctext, (void (*)()) start_routine, 1, arg);
 	enqueue(thread);
 	return 0;
 }
 
 void mypthread_exit(void *retval) {
 
-	mypthread_t* current_thread = searchThread(curr_thread_id);
+	mypthread_t* currentThread = threadsearch(currentTID);
 
-	current_thread->state = PS_DEAD;
-	free(current_thread->ctx);
-	if (current_thread->joinfrom_th != 0)
+	currentThread->state = PS_DEAD;
+	free(currentThread->ctext);
+	if (currentThread->join_th != 0)
 			{
-		mypthread_t* join_thread = searchThread(current_thread->joinfrom_th);
+		mypthread_t* join_thread = threadsearch(currentThread->join_th);
 		join_thread->state = PS_ACTIVE;
-		current_thread->joinfrom_th;
+		currentThread->join_th;
 	}
 
-	mypthread_t* next_thread = searchNextActiveThread(current_thread->th_id);
-	if (curr_thread_id == next_thread->th_id)
+
+	mypthread_t* nextThread = searchNextThread(currentThread->tid);
+	if (currentTID == nextThread->tid)
 		return;
-	curr_thread_id = next_thread->th_id;
-	setcontext(next_thread->ctx);
+	currentTID = nextThread->tid;
+	setcontext(nextThread->ctext);
 
 }
 
 int mypthread_yield(void) {
 
-	mypthread_t* current_thread = searchThread(curr_thread_id);
+	mypthread_t* currentThread = threadsearch(currentTID);
 
-	mypthread_t* next_thread = searchNextActiveThread(current_thread->th_id);
+	mypthread_t* nextThread = searchNextThread(currentThread->tid);
 
-	if (curr_thread_id == next_thread->th_id)
+	if (currentTID == nextThread->tid)
 		return 0;
 
-	curr_thread_id = next_thread->th_id;
-	swapcontext(current_thread->ctx, next_thread->ctx);
+
+	currentTID = nextThread->tid;
+	swapcontext(currentThread->ctext, nextThread->ctext);
 	return 0;
 }
 
+
 int mypthread_join(mypthread_t thread, void **retval) {
-	int target_th_id = thread.th_id;
-	mypthread_t* current_thread = searchThread(curr_thread_id);
-	mypthread_t* target_thread = searchThread(thread.th_id);
+	int target_tid = thread.tid;
+	mypthread_t* currentThread = threadsearch(currentTID);
+	mypthread_t* target_thread = threadsearch(thread.tid);
 	if (target_thread->state != PS_ACTIVE) {
 		return 0;
 	} else {
-		current_thread->state = PS_BLOCKED;
-		target_thread->joinfrom_th = curr_thread_id;
-		curr_thread_id = target_th_id;
-		swapcontext(current_thread->ctx, target_thread->ctx);
+		currentThread->state = PS_BLOCKED;
+		target_thread->join_th = currentTID;
+		currentTID = target_tid;
+		swapcontext(currentThread->ctext, target_thread->ctext);
 	}
 	return 0;
 }
